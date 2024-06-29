@@ -41,33 +41,3 @@ CREATE INDEX "transactions_senderId_index" ON "transactions" ("senderId");
 CREATE INDEX "transactions_receiverId_index" ON "transactions" ("receiverId");
 CREATE INDEX "accounts_ownerId_index" ON "accounts" ("ownerId");
 
-INSERT INTO "atms" ("cashCents", "login", "password")
-VALUES (5000000, 'atm001', '\x1234567890abcdef'),
-       (7500000, 'atm002', '\xabcdef1234567890');
-
-
-INSERT INTO "accountOwners" ("userId", "atmId")
-VALUES (NULL, 1),
-       (NULL, 2),
-       (1, NULL);
-
-INSERT INTO "accounts" ("balanceCents", "ownerId", "status")
-VALUES (100000, 1, 'ACTIVE'),
-       (200000, 2, 'ACTIVE'),
-       (300000, 3, 'ACTIVE'),
-       (400000, 3, 'BLOCKED');
-
-INSERT INTO "transactions" ("id", "senderId", "receiverId", "status", "amountCents", "description")
-VALUES (1, 1, 2, 'CONFIRMED', 50000, 'Payment for services'),
-       (2, 2, 3, 'CANCELLED', 100000, 'Refund'),
-       (3, 3, 1, 'BLOCKED', 20000, 'Transfer'),
-       (4, 1, 3, 'CONFIRMED', 30000, 'Gift');
-
-SELECT *
-FROM transactions;
-SELECT *
-FROM accounts;
-SELECT *
-FROM "accountOwners";
-SELECT *
-FROM atms;
