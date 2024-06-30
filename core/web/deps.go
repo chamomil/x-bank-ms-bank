@@ -1,10 +1,9 @@
 package web
 
+import "context"
+
 type (
-	Service struct {
+	AccountStorage interface {
+		GetUserAccounts(ctx context.Context, userId int64) ([]UserAccountsData, error)
 	}
 )
-
-func NewService() Service {
-	return Service{}
-}

@@ -9,4 +9,6 @@ const (
 	BcryptHashing
 	HS512Authorization
 	RS256Authorization
+	PostgresQuery
+	PostgresScan
 )

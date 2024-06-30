@@ -10,6 +10,7 @@ import (
 	"time"
 	"x-bank-ms-bank/config"
 	"x-bank-ms-bank/core/web"
+	"x-bank-ms-bank/infra/postgres"
 	"x-bank-ms-bank/transport/http"
 	"x-bank-ms-bank/transport/http/jwt"
 )
@@ -30,8 +31,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	postgresService, err := postgres.NewService(conf.Postgres.Login, conf.Postgres.Password, conf.Postgres.Host, conf.Postgres.Port, conf.Postgres.DataBase, conf.Postgres.MaxCons)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	service := web.NewService()
+	service := web.NewService(&postgresService)
 	transport := http.NewTransport(service, &jwtHs512)
 
 	errCh := transport.Start(*addr)
