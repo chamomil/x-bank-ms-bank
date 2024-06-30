@@ -45,3 +45,18 @@ func (t *Transport) handlerUserAccounts(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 }
+
+func (t *Transport) handlerOpenAccount(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(t.claimsCtxKey).(*auth.Claims)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют claims в контексте"))
+		return
+	}
+	userId := claims.Sub
+	if err := t.service.OpenAccount(r.Context(), userId); err != nil {
+		t.errorHandler.setError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}

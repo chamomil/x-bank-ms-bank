@@ -10,24 +10,47 @@ paths:
     get:
       summary: Просмотр счетов пользователя
       tags:
-        - Account operations
+        - User data
       security:
         - bearerAuth: []
       responses:
-        200:
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountsResponse'
-        400:
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/accounts/open:
+    post:
+      summary: Открытие счёта
+      tags:
+        - Account operations
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Created
+        '400':
           description: Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
+
 components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   schemas:
     Error:

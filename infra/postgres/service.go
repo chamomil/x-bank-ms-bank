@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"x-bank-ms-bank/core/web"
@@ -50,4 +51,47 @@ func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.User
 	}
 
 	return userAccountsData, nil
+}
+
+func (s *Service) OpenUserAccount(ctx context.Context, userId int64) error {
+	const query = `SELECT "id" FROM "accountOwners" WHERE "userId" = $1`
+
+	row := s.db.QueryRowContext(ctx, query, userId)
+	if err := row.Err(); err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	var accountOwnerId int64
+	if err := row.Scan(&accountOwnerId); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			accountOwnerId, err = s.createAccountOwner(ctx, userId)
+			if err != nil {
+				return err
+			}
+		} else {
+			return s.wrapScanError(err)
+		}
+	}
+
+	const openAccountQuery = `INSERT INTO accounts ("ownerId") VALUES ($1)`
+	_, err := s.db.ExecContext(ctx, openAccountQuery, accountOwnerId)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
+}
+
+func (s *Service) createAccountOwner(ctx context.Context, userId int64) (int64, error) {
+	const query = `INSERT INTO "accountOwners" ("userId") VALUES ($1) RETURNING id`
+
+	row := s.db.QueryRowContext(ctx, query, userId)
+	if err := row.Err(); err != nil {
+		return 0, s.wrapQueryError(err)
+	}
+
+	var id int64
+	if err := row.Scan(&id); err != nil {
+		return 0, s.wrapScanError(err)
+	}
+	return id, nil
 }

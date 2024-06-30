@@ -22,5 +22,7 @@ func (t *Transport) routes() http.Handler {
 	mux.HandleFunc("/", defaultMiddlewareGroup.Apply(t.handlerNotFound))
 	mux.HandleFunc("GET /v1/me/accounts", userMiddlewareGroup.Apply(t.handlerUserAccounts))
 
+	mux.HandleFunc("POST /v1/accounts/open", userMiddlewareGroup.Apply(t.handlerOpenAccount))
+
 	return mux
 }
