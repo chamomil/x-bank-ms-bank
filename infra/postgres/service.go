@@ -95,3 +95,13 @@ func (s *Service) createAccountOwner(ctx context.Context, userId int64) (int64, 
 	}
 	return id, nil
 }
+
+func (s *Service) BlockUserAccount(ctx context.Context, accountId int64) error {
+	const query = `UPDATE accounts SET status = 'BLOCKED' WHERE id = $1`
+
+	_, err := s.db.ExecContext(ctx, query, accountId)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
+}

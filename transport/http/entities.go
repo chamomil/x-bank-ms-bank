@@ -10,4 +10,8 @@ type (
 	UserAccountsResponse struct {
 		Items []UserAccountsResponseItem `json:"items"`
 	}
+
+	AccountDataToBlock struct {
+		AccountId int64
+	}
 )

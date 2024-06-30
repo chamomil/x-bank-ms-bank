@@ -42,6 +42,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /v1/accounts/block:
+    post:
+      summary: Блокировка счёта
+      tags:
+        - Account operations
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: integer
+                  description: Номер счёта
+      responses:
+        '200':
+          description: Ok
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 
 components:

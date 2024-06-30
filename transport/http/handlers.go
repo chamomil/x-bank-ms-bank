@@ -60,3 +60,16 @@ func (t *Transport) handlerOpenAccount(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 }
+
+func (t *Transport) handlerBlockAccount(w http.ResponseWriter, r *http.Request) {
+	var accountData AccountDataToBlock
+	if err := json.NewDecoder(r.Body).Decode(&accountData); err != nil {
+		t.errorHandler.setBadRequestError(w, err)
+		return
+	}
+
+	if err := t.service.BlockAccount(r.Context(), accountData.AccountId); err != nil {
+		t.errorHandler.setError(w, err)
+	}
+	w.WriteHeader(http.StatusOK)
+}
