@@ -11,7 +11,20 @@ type (
 		Items []UserAccountsResponseItem `json:"items"`
 	}
 
-	AccountDataToBlock struct {
-		AccountId int64
+	AccountData struct {
+		AccountId int64 `json:"accountId"`
+	}
+
+	AccountsHistoryResponseItem struct {
+		SenderId    int64  `json:"senderId"`
+		ReceiverId  int64  `json:"receiverId"`
+		Status      string `json:"status"`
+		CreatedAt   string `json:"createdAt"`
+		AmountCents int64  `json:"amountCents"`
+		Description string `json:"description"`
+	}
+
+	AccountsHistoryResponse struct {
+		Items []AccountsHistoryResponseItem `json:"items"`
 	}
 )

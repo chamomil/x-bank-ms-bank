@@ -25,3 +25,7 @@ func (s *Service) OpenAccount(ctx context.Context, userId int64) error {
 func (s *Service) BlockAccount(ctx context.Context, accountId int64) error {
 	return s.accountStorage.BlockUserAccount(ctx, accountId)
 }
+
+func (s *Service) AccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error) {
+	return s.accountStorage.GetAccountHistory(ctx, accountId)
+}

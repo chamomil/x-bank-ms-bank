@@ -105,3 +105,23 @@ func (s *Service) BlockUserAccount(ctx context.Context, accountId int64) error {
 	}
 	return nil
 }
+
+func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web.AccountTransactionsData, error) {
+	const query = `SELECT "senderId", "receiverId", "status", "createdAt", "amountCents", "description" FROM transactions WHERE "senderId" = $1 OR "receiverId" = $1 ORDER BY "createdAt" DESC`
+
+	rows, err := s.db.QueryContext(ctx, query, accountId)
+	if err != nil {
+		return nil, s.wrapQueryError(err)
+	}
+
+	var accountTransactionsData []web.AccountTransactionsData
+	for rows.Next() {
+		var data web.AccountTransactionsData
+		if err = rows.Scan(&data.SenderId, &data.ReceiverId, &data.Status, &data.CreatedAt, &data.AmountCents, &data.Description); err != nil {
+			return nil, s.wrapScanError(err)
+		}
+		accountTransactionsData = append(accountTransactionsData, data)
+	}
+
+	return accountTransactionsData, nil
+}

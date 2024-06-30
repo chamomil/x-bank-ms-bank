@@ -24,6 +24,7 @@ func (t *Transport) routes() http.Handler {
 
 	mux.HandleFunc("POST /v1/accounts/open", userMiddlewareGroup.Apply(t.handlerOpenAccount))
 	mux.HandleFunc("POST /v1/accounts/block", userMiddlewareGroup.Apply(t.handlerBlockAccount))
+	mux.HandleFunc("GET /v1/accounts/history", userMiddlewareGroup.Apply(t.handlerAccountHistory))
 
 	return mux
 }

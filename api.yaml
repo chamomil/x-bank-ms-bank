@@ -60,7 +60,39 @@ paths:
                   description: Номер счёта
       responses:
         '200':
-          description: Ok
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/accounts/history:
+    get:
+      summary: История транзакций счёта
+      tags:
+        - Account operations
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: integer
+                  description: Номер счёта
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    $ref: '#/components/schemas/AccountHistoryResponse'
         '400':
           description: Error
           content:
@@ -106,3 +138,29 @@ components:
           - id
           - balanceCents
           - status
+
+    AccountHistoryResponse:
+      type: array
+      nullable: true
+      items:
+        type: object
+        properties:
+          senderId:
+            type: integer
+          receiverId:
+            type: integer
+          status:
+            type: string
+          createdAt:
+            type: string
+          amountCents:
+            type: integer
+          description:
+            type: string
+        required:
+          - senderId
+          - receiverId
+          - status
+          - createdAt
+          - amountCents
+          - description

@@ -62,7 +62,7 @@ func (t *Transport) handlerOpenAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *Transport) handlerBlockAccount(w http.ResponseWriter, r *http.Request) {
-	var accountData AccountDataToBlock
+	var accountData AccountData
 	if err := json.NewDecoder(r.Body).Decode(&accountData); err != nil {
 		t.errorHandler.setBadRequestError(w, err)
 		return
@@ -72,4 +72,42 @@ func (t *Transport) handlerBlockAccount(w http.ResponseWriter, r *http.Request) 
 		t.errorHandler.setError(w, err)
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request) {
+	var accountData AccountData
+	if err := json.NewDecoder(r.Body).Decode(&accountData); err != nil {
+		t.errorHandler.setBadRequestError(w, err)
+		return
+	}
+
+	data, err := t.service.AccountHistory(r.Context(), accountData.AccountId)
+	if err != nil {
+		t.errorHandler.setError(w, err)
+		return
+	}
+
+	var response AccountsHistoryResponse
+	if data != nil {
+		for _, entry := range data {
+			userAccountsItem := AccountsHistoryResponseItem{
+				SenderId:    entry.SenderId,
+				ReceiverId:  entry.ReceiverId,
+				Status:      entry.Status,
+				CreatedAt:   entry.CreatedAt.Format("2006.01.02 15:04:05"),
+				AmountCents: entry.AmountCents,
+				Description: entry.Description,
+			}
+			response.Items = append(response.Items, userAccountsItem)
+		}
+	} else {
+		response.Items = nil
+	}
+
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		t.errorHandler.setError(w, err)
+		return
+	}
 }
