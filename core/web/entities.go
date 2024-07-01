@@ -17,4 +17,11 @@ type (
 		AmountCents int64
 		Description string
 	}
+
+	AtmData struct {
+		Id           int64
+		AccountId    int64
+		PasswordHash []byte
+		CashCents    int64
+	}
 )

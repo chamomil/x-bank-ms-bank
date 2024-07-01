@@ -9,5 +9,16 @@ type (
 		BlockUserAccount(ctx context.Context, accountId int64) error
 		GetAccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error)
 		CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error
+		UpdateAtmAccount(ctx context.Context, amountCents, accountId int64) error
+	}
+
+	AtmStorage interface {
+		GetPasswordByLogin(ctx context.Context, login string) (AtmData, error)
+		UpdateAtmCash(ctx context.Context, amountCents, atmId int64) error
+	}
+
+	PasswordHasher interface {
+		CompareHashAndPassword(ctx context.Context, password string, hashedPassword []byte) error
+		HashPassword(_ context.Context, password []byte, cost int) ([]byte, error)
 	}
 )

@@ -42,8 +42,8 @@ CREATE INDEX "transactions_receiverId_index" ON "transactions" ("receiverId");
 CREATE INDEX "accounts_ownerId_index" ON "accounts" ("ownerId");
 
 INSERT INTO "atms" ("cashCents", "login", "password")
-VALUES (5000000, 'atm001', '\x1234567890abcdef'),
-       (7500000, 'atm002', '\xabcdef1234567890');
+VALUES (5000000, 'atm001', '$2a$10$GHg/65CqcSqdLAeRcHUtxOYEAiHCKWF8I7WWJPLPv0mF54BkBBbh.'), -- password: atm
+       (7500000, 'atm002', '$2a$10$qYNh0MLqcFiDBtYAL28GEOlLVa.sZWs.UhtSORr6iTGG5CuFNmW8S'); -- password: atm2
 
 
 INSERT INTO "accountOwners" ("userId", "atmId")

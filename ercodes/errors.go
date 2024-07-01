@@ -13,4 +13,5 @@ const (
 	PostgresScan
 	BlockedAccount
 	NotEnoughMoney
+	WrongPassword
 )

@@ -10,6 +10,7 @@ import (
 	"time"
 	"x-bank-ms-bank/config"
 	"x-bank-ms-bank/core/web"
+	"x-bank-ms-bank/infra/hasher"
 	"x-bank-ms-bank/infra/postgres"
 	"x-bank-ms-bank/transport/http"
 	"x-bank-ms-bank/transport/http/jwt"
@@ -35,8 +36,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	passwordHasher := hasher.NewService()
 
-	service := web.NewService(&postgresService)
+	service := web.NewService(&postgresService, &passwordHasher, &postgresService)
 	transport := http.NewTransport(service, &jwtHs512)
 
 	errCh := transport.Start(*addr)

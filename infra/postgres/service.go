@@ -35,6 +35,8 @@ func NewService(login, password, host string, port int, database string, maxCons
 	}, err
 }
 
+const ()
+
 func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.UserAccountData, error) {
 	const query = `SELECT accounts."id", "balanceCents", "status" FROM accounts LEFT JOIN "accountOwners" ON "ownerId" = "accountOwners".id WHERE "userId" = $1`
 
@@ -130,8 +132,9 @@ func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web
 }
 
 func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
-	const query = `SELECT "balanceCents", "status" FROM accounts WHERE "id" = $1`
-	row := s.db.QueryRowContext(ctx, query, senderId)
+	//TODO: split into smaller functions
+	const accountQuery = `SELECT "balanceCents", "status" FROM accounts WHERE "id" = $1`
+	row := s.db.QueryRowContext(ctx, accountQuery, senderId)
 	if err := row.Err(); err != nil {
 		return s.wrapQueryError(err)
 	}
@@ -150,7 +153,13 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 	if err != nil {
 		return s.wrapQueryError(err)
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		if tempErr := tx.Rollback(); tempErr != nil {
+			err = s.wrapQueryError(tempErr)
+		}
+	}()
+
 	const queryTransaction = `INSERT INTO transactions ("senderId", "receiverId", "amountCents", description) VALUES (@senderId, @receiverId, @amountCents, @description)`
 	_, err = tx.ExecContext(ctx, queryTransaction, pgx.NamedArgs{
 		"senderId":    senderId,
@@ -165,7 +174,7 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 	const querySenderUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" - @amountCents WHERE id = @senderId`
 	const queryReceiverUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" + @amountCents WHERE id = @receiverId`
 
-	_, err = s.db.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
+	_, err = tx.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
 		"amountCents": amountCents,
 		"senderId":    senderId,
 	})
@@ -173,7 +182,7 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 		return s.wrapQueryError(err)
 	}
 
-	_, err = s.db.ExecContext(ctx, queryReceiverUpdate, pgx.NamedArgs{
+	_, err = tx.ExecContext(ctx, queryReceiverUpdate, pgx.NamedArgs{
 		"amountCents": amountCents,
 		"receiverId":  receiverId,
 	})
@@ -181,6 +190,56 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 		return s.wrapQueryError(err)
 	}
 	if err = tx.Commit(); err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	return err
+}
+
+func (s *Service) GetPasswordByLogin(ctx context.Context, login string) (web.AtmData, error) {
+	const query = `SELECT atms.id, atms.password, atms."cashCents", accounts.id as "hasPersonalData"
+				   FROM atms
+				   INNER JOIN "accountOwners" ON atms.id = "accountOwners"."atmId" 
+					INNER JOIN "accounts" ON "accountOwners".id = "accounts"."ownerId"
+				   WHERE atms.login = @login`
+
+	row := s.db.QueryRowContext(ctx, query,
+		pgx.NamedArgs{
+			"login": login,
+		},
+	)
+	if err := row.Err(); err != nil {
+		return web.AtmData{}, s.wrapQueryError(err)
+	}
+
+	var atmData web.AtmData
+	if err := row.Scan(&atmData.Id, &atmData.PasswordHash, &atmData.CashCents, &atmData.AccountId); err != nil {
+		return web.AtmData{}, s.wrapScanError(err)
+	}
+	return atmData, nil
+}
+
+func (s *Service) UpdateAtmCash(ctx context.Context, amountCents, atmId int64) error {
+	const query = `UPDATE atms SET "cashCents" = "cashCents" + @amountCents WHERE id = @atmId`
+
+	_, err := s.db.ExecContext(ctx, query, pgx.NamedArgs{
+		"amountCents": amountCents,
+		"atmId":       atmId,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
+}
+
+func (s *Service) UpdateAtmAccount(ctx context.Context, amountCents, accountId int64) error {
+	const query = `UPDATE accounts SET "balanceCents" = "balanceCents" + @amountCents WHERE id = @accountId`
+
+	_, err := s.db.ExecContext(ctx, query, pgx.NamedArgs{
+		"amountCents": amountCents,
+		"accountId":   accountId,
+	})
+	if err != nil {
 		return s.wrapQueryError(err)
 	}
 	return nil
