@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"x-bank-ms-bank/cerrors"
 	"x-bank-ms-bank/core/web"
-	"x-bank-ms-bank/ercodes"
 )
 
 type (
@@ -131,24 +129,21 @@ func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web
 	return accountTransactionsData, nil
 }
 
-func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
-	//TODO: split into smaller functions
+func (s *Service) GetSenderAccountData(ctx context.Context, senderId int64) (web.UserAccountData, error) {
 	const accountQuery = `SELECT "balanceCents", "status" FROM accounts WHERE "id" = $1`
 	row := s.db.QueryRowContext(ctx, accountQuery, senderId)
 	if err := row.Err(); err != nil {
-		return s.wrapQueryError(err)
+		return web.UserAccountData{}, s.wrapQueryError(err)
 	}
 
 	var userAccountData web.UserAccountData
 	if err := row.Scan(&userAccountData.BalanceCents, &userAccountData.Status); err != nil {
-		return s.wrapScanError(err)
+		return web.UserAccountData{}, s.wrapScanError(err)
 	}
-	if userAccountData.Status == "BLOCKED" {
-		return cerrors.NewErrorWithUserMessage(ercodes.BlockedAccount, nil, "Счёт отправителя заблокирован")
-	}
-	if userAccountData.BalanceCents < amountCents {
-		return cerrors.NewErrorWithUserMessage(ercodes.NotEnoughMoney, nil, "Недостаточно средств")
-	}
+	return userAccountData, nil
+}
+
+func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return s.wrapQueryError(err)

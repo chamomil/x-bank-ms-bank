@@ -8,8 +8,12 @@ type (
 		OpenUserAccount(ctx context.Context, userId int64) error
 		BlockUserAccount(ctx context.Context, accountId int64) error
 		GetAccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error)
-		CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error
 		UpdateAtmAccount(ctx context.Context, amountCents, accountId int64) error
+		GetSenderAccountData(ctx context.Context, senderId int64) (UserAccountData, error)
+	}
+
+	TransactionStorage interface {
+		CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error
 	}
 
 	AtmStorage interface {

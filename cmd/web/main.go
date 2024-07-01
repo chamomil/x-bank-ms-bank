@@ -38,7 +38,7 @@ func main() {
 	}
 	passwordHasher := hasher.NewService()
 
-	service := web.NewService(&postgresService, &passwordHasher, &postgresService)
+	service := web.NewService(&postgresService, &passwordHasher, &postgresService, &postgresService)
 	transport := http.NewTransport(service, &jwtHs512)
 
 	errCh := transport.Start(*addr)
