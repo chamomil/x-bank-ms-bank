@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"x-bank-ms-bank/cerrors"
 	"x-bank-ms-bank/core/web"
+	"x-bank-ms-bank/ercodes"
 )
 
 type (
@@ -32,7 +35,7 @@ func NewService(login, password, host string, port int, database string, maxCons
 	}, err
 }
 
-func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.UserAccountsData, error) {
+func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.UserAccountData, error) {
 	const query = `SELECT accounts."id", "balanceCents", "status" FROM accounts LEFT JOIN "accountOwners" ON "ownerId" = "accountOwners".id WHERE "userId" = $1`
 
 	rows, err := s.db.QueryContext(ctx, query, userId)
@@ -41,9 +44,9 @@ func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.User
 		return nil, s.wrapQueryError(err)
 	}
 
-	var userAccountsData []web.UserAccountsData
+	var userAccountsData []web.UserAccountData
 	for rows.Next() {
-		var data web.UserAccountsData
+		var data web.UserAccountData
 		if err = rows.Scan(&data.Id, &data.BalanceCents, &data.Status); err != nil {
 			return nil, s.wrapScanError(err)
 		}
@@ -124,4 +127,61 @@ func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web
 	}
 
 	return accountTransactionsData, nil
+}
+
+func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
+	const query = `SELECT "balanceCents", "status" FROM accounts WHERE "id" = $1`
+	row := s.db.QueryRowContext(ctx, query, senderId)
+	if err := row.Err(); err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	var userAccountData web.UserAccountData
+	if err := row.Scan(&userAccountData.BalanceCents, &userAccountData.Status); err != nil {
+		return s.wrapScanError(err)
+	}
+	if userAccountData.Status == "BLOCKED" {
+		return cerrors.NewErrorWithUserMessage(ercodes.BlockedAccount, nil, "Счёт отправителя заблокирован")
+	}
+	if userAccountData.BalanceCents < amountCents {
+		return cerrors.NewErrorWithUserMessage(ercodes.NotEnoughMoney, nil, "Недостаточно средств")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	defer tx.Rollback()
+	const queryTransaction = `INSERT INTO transactions ("senderId", "receiverId", "amountCents", description) VALUES (@senderId, @receiverId, @amountCents, @description)`
+	_, err = tx.ExecContext(ctx, queryTransaction, pgx.NamedArgs{
+		"senderId":    senderId,
+		"receiverId":  receiverId,
+		"amountCents": amountCents,
+		"description": description,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	const querySenderUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" - @amountCents WHERE id = @senderId`
+	const queryReceiverUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" + @amountCents WHERE id = @receiverId`
+
+	_, err = s.db.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
+		"amountCents": amountCents,
+		"senderId":    senderId,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	_, err = s.db.ExecContext(ctx, queryReceiverUpdate, pgx.NamedArgs{
+		"amountCents": amountCents,
+		"receiverId":  receiverId,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	if err = tx.Commit(); err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
 }

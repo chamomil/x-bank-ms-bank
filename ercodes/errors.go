@@ -11,4 +11,6 @@ const (
 	RS256Authorization
 	PostgresQuery
 	PostgresScan
+	BlockedAccount
+	NotEnoughMoney
 )

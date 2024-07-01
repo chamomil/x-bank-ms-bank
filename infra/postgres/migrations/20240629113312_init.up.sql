@@ -28,7 +28,7 @@ CREATE TABLE "accounts"
 
 CREATE TABLE "transactions"
 (
-    "id"          BIGINT             NOT NULL PRIMARY KEY,
+    "id"          BIGSERIAL             NOT NULL PRIMARY KEY,
     "senderId"    BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "receiverId"  BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "status"      status_transaction NOT NULL DEFAULT 'BLOCKED',

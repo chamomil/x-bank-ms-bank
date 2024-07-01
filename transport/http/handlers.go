@@ -111,3 +111,18 @@ func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
+
+func (t *Transport) handlerAccountTransaction(w http.ResponseWriter, r *http.Request) {
+	var transactionData TransactionData
+	if err := json.NewDecoder(r.Body).Decode(&transactionData); err != nil {
+		t.errorHandler.setBadRequestError(w, err)
+		return
+	}
+
+	if err := t.service.Transaction(r.Context(), transactionData.SenderId, transactionData.ReceiverId, transactionData.AmountCents, transactionData.Description); err != nil {
+		t.errorHandler.setError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

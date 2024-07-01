@@ -27,4 +27,11 @@ type (
 	AccountsHistoryResponse struct {
 		Items []AccountsHistoryResponseItem `json:"items"`
 	}
+
+	TransactionData struct {
+		SenderId    int64  `json:"senderId"`
+		ReceiverId  int64  `json:"receiverId"`
+		AmountCents int64  `json:"amountCents"`
+		Description string `json:"description"`
+	}
 )

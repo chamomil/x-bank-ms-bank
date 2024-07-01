@@ -99,6 +99,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /v1/transactions:
+    post:
+      summary: Перевод на счёт
+      tags:
+        - Transactions
+      security:
+        - bearerAuth: [ ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                senderId:
+                  type: integer
+                  description: Номер счёта отправителя
+                receiverId:
+                  type: integer
+                  description: Номер счёта получателя
+                amountCents:
+                  type: integer
+                  description: Сумма перевода (в центах)
+                description:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 
 components:

@@ -28,7 +28,7 @@ CREATE TABLE "accounts"
 
 CREATE TABLE "transactions"
 (
-    "id"          BIGINT             NOT NULL PRIMARY KEY,
+    "id"          BIGSERIAL             NOT NULL PRIMARY KEY,
     "senderId"    BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "receiverId"  BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "status"      status_transaction NOT NULL DEFAULT 'BLOCKED',
@@ -57,11 +57,11 @@ VALUES (100000, 1, 'ACTIVE'),
        (300000, 3, 'ACTIVE'),
        (400000, 3, 'BLOCKED');
 
-INSERT INTO "transactions" ("id", "senderId", "receiverId", "status", "amountCents", "description")
-VALUES (1, 1, 2, 'CONFIRMED', 50000, 'Payment for services'),
-       (2, 2, 3, 'CANCELLED', 100000, 'Refund'),
-       (3, 3, 1, 'BLOCKED', 20000, 'Transfer'),
-       (4, 1, 3, 'CONFIRMED', 30000, 'Gift');
+INSERT INTO "transactions" ("senderId", "receiverId", "status", "amountCents", "description")
+VALUES (1, 2, 'CONFIRMED', 50000, 'Payment for services'),
+       (2, 3, 'CANCELLED', 100000, 'Refund'),
+       (3, 1, 'BLOCKED', 20000, 'Transfer'),
+       (1, 3, 'CONFIRMED', 30000, 'Gift');
 
 SELECT *
 FROM transactions;

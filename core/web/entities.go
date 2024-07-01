@@ -3,7 +3,7 @@ package web
 import "time"
 
 type (
-	UserAccountsData struct {
+	UserAccountData struct {
 		Id           int64
 		BalanceCents int64
 		Status       string

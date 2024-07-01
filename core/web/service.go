@@ -14,7 +14,7 @@ func NewService(accountStorage AccountStorage) Service {
 	}
 }
 
-func (s *Service) GetAccounts(ctx context.Context, userId int64) ([]UserAccountsData, error) {
+func (s *Service) GetAccounts(ctx context.Context, userId int64) ([]UserAccountData, error) {
 	return s.accountStorage.GetUserAccounts(ctx, userId)
 }
 
@@ -28,4 +28,8 @@ func (s *Service) BlockAccount(ctx context.Context, accountId int64) error {
 
 func (s *Service) AccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error) {
 	return s.accountStorage.GetAccountHistory(ctx, accountId)
+}
+
+func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
+	return s.accountStorage.CreateTransaction(ctx, senderId, receiverId, amountCents, description)
 }
