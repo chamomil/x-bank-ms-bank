@@ -133,6 +133,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /v1/atm/supplement:
+    post:
+      summary: Внесение наличных в банкомат инкассатором
+      tags:
+        - ATM collector operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+                amountCents:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /v1/atm/withdrawal:
+    post:
+      summary: Изъятие инкассатором наличных из банкомата
+      tags:
+        - ATM collector operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+                amountCents:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 
 components:
 

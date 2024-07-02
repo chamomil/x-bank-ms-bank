@@ -35,7 +35,7 @@ type (
 		Description string `json:"description"`
 	}
 
-	ATMSupplementData struct {
+	ATMOperationData struct {
 		Login       string `json:"login"`
 		Password    string `json:"password"`
 		AmountCents int64  `json:"amountCents"`

@@ -74,3 +74,22 @@ func (s *Service) ATMSupplement(ctx context.Context, login, password string, amo
 	}
 	return nil
 }
+
+func (s *Service) ATMWithdrawal(ctx context.Context, login, password string, amountCents int64) error {
+	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
+	if err != nil {
+		return err
+	}
+
+	if err = s.passwordHasher.CompareHashAndPassword(ctx, password, atmData.PasswordHash); err != nil {
+		return err
+	}
+
+	if err = s.atmStorage.UpdateAtmCash(ctx, -amountCents, atmData.Id); err != nil {
+		return err
+	}
+	if err = s.accountStorage.UpdateAtmAccount(ctx, -amountCents, atmData.AccountId); err != nil {
+		return err
+	}
+	return nil
+}
