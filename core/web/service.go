@@ -53,6 +53,15 @@ func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountC
 		return cerrors.NewErrorWithUserMessage(ercodes.NotEnoughMoney, nil, "Недостаточно средств")
 	}
 
+	receiverAccountData, err := s.accountStorage.GetSenderAccountData(ctx, receiverId)
+	if err != nil {
+		return err
+	}
+
+	if receiverAccountData.Status == "BLOCKED" {
+		return cerrors.NewErrorWithUserMessage(ercodes.BlockedAccount, nil, "Счёт получателя заблокирован")
+	}
+
 	return s.transactionStorage.CreateTransaction(ctx, senderId, receiverId, amountCents, description)
 }
 
@@ -92,4 +101,23 @@ func (s *Service) ATMWithdrawal(ctx context.Context, login, password string, amo
 		return err
 	}
 	return nil
+}
+
+func (s *Service) ATMUserSupplement(ctx context.Context, login, password string, amountCents, accountId int64) error {
+	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
+	if err != nil {
+		return err
+	}
+
+	if err = s.passwordHasher.CompareHashAndPassword(ctx, password, atmData.PasswordHash); err != nil {
+		return err
+	}
+
+	if err = s.atmStorage.UpdateAtmCash(ctx, amountCents, atmData.Id); err != nil {
+		return err
+	}
+	if err = s.accountStorage.UpdateAtmAccount(ctx, amountCents, atmData.AccountId); err != nil {
+		return err
+	}
+	return s.Transaction(ctx, atmData.AccountId, accountId, amountCents, "Пополнение счёта")
 }

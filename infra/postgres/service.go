@@ -157,24 +157,32 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 		}
 	}()
 
-	const queryTransaction = `INSERT INTO transactions ("senderId", "receiverId", "amountCents", description) VALUES (@senderId, @receiverId, @amountCents, @description)`
-	_, err = tx.ExecContext(ctx, queryTransaction, pgx.NamedArgs{
-		"senderId":    senderId,
-		"receiverId":  receiverId,
-		"amountCents": amountCents,
-		"description": description,
-	})
-	if err != nil {
-		return s.wrapQueryError(err)
-	}
+	errCh := make(chan error, 1)
 
-	const querySenderUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" - @amountCents WHERE id = @senderId`
-	_, err = tx.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
-		"amountCents": amountCents,
-		"senderId":    senderId,
-	})
-	if err != nil {
-		return s.wrapQueryError(err)
+	go func() {
+		const queryTransaction = `INSERT INTO transactions ("senderId", "receiverId", "amountCents", description) VALUES (@senderId, @receiverId, @amountCents, @description)`
+		_, err := tx.ExecContext(ctx, queryTransaction, pgx.NamedArgs{
+			"senderId":    senderId,
+			"receiverId":  receiverId,
+			"amountCents": amountCents,
+			"description": description,
+		})
+		errCh <- err
+	}()
+
+	go func() {
+		const querySenderUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" - @amountCents WHERE id = @senderId`
+		_, err := tx.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
+			"amountCents": amountCents,
+			"senderId":    senderId,
+		})
+		errCh <- err
+	}()
+
+	for i := 0; i < 2; i++ {
+		if err := <-errCh; err != nil {
+			return s.wrapQueryError(err)
+		}
 	}
 
 	if err = tx.Commit(); err != nil {

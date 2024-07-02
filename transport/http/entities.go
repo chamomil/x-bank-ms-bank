@@ -40,4 +40,11 @@ type (
 		Password    string `json:"password"`
 		AmountCents int64  `json:"amountCents"`
 	}
+
+	ATMUserOperationData struct {
+		Login       string `json:"login"`
+		Password    string `json:"password"`
+		AmountCents int64  `json:"amountCents"`
+		AccountId   int64  `json:"accountId"`
+	}
 )

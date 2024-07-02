@@ -154,3 +154,17 @@ func (t *Transport) handlerATMWithdrawal(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func (t *Transport) handlerATMUserSupplement(w http.ResponseWriter, r *http.Request) {
+	var atmUserSupplementData ATMUserOperationData
+	if err := json.NewDecoder(r.Body).Decode(&atmUserSupplementData); err != nil {
+		t.errorHandler.setBadRequestError(w, err)
+		return
+	}
+
+	if err := t.service.ATMUserSupplement(r.Context(), atmUserSupplementData.Login, atmUserSupplementData.Password, atmUserSupplementData.AmountCents, atmUserSupplementData.AccountId); err != nil {
+		t.errorHandler.setError(w, err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
