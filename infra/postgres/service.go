@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"time"
+	transaction_manager "x-bank-ms-bank/core/transaction-manager"
 	"x-bank-ms-bank/core/web"
 )
 
@@ -167,8 +169,6 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 	}
 
 	const querySenderUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" - @amountCents WHERE id = @senderId`
-	const queryReceiverUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" + @amountCents WHERE id = @receiverId`
-
 	_, err = tx.ExecContext(ctx, querySenderUpdate, pgx.NamedArgs{
 		"amountCents": amountCents,
 		"senderId":    senderId,
@@ -177,13 +177,6 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 		return s.wrapQueryError(err)
 	}
 
-	_, err = tx.ExecContext(ctx, queryReceiverUpdate, pgx.NamedArgs{
-		"amountCents": amountCents,
-		"receiverId":  receiverId,
-	})
-	if err != nil {
-		return s.wrapQueryError(err)
-	}
 	if err = tx.Commit(); err != nil {
 		return s.wrapQueryError(err)
 	}
@@ -235,6 +228,68 @@ func (s *Service) UpdateAtmAccount(ctx context.Context, amountCents, accountId i
 		"accountId":   accountId,
 	})
 	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
+}
+
+func (s *Service) ConfirmTransaction(ctx context.Context, confirmationTime time.Duration) error {
+	const queryTransactions = `SELECT "id", "senderId", "receiverId", "amountCents" FROM transactions WHERE current_timestamp - "createdAt" >= @confirmationTime AND status = 'BLOCKED'`
+	rows, err := s.db.QueryContext(ctx, queryTransactions,
+		pgx.NamedArgs{
+			"confirmationTime": confirmationTime,
+		},
+	)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	var transactionsToApply []transaction_manager.TransactionToApply
+	for rows.Next() {
+		var data transaction_manager.TransactionToApply
+		if err = rows.Scan(&data.Id, &data.SenderId, &data.ReceiverId, &data.AmountCents); err != nil {
+			return s.wrapScanError(err)
+		}
+		transactionsToApply = append(transactionsToApply, data)
+	}
+
+	for _, transaction := range transactionsToApply {
+		if err = s.applyTransaction(ctx, transaction); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func (s *Service) applyTransaction(ctx context.Context, transaction transaction_manager.TransactionToApply) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	defer func() {
+		if tempErr := tx.Rollback(); tempErr != nil {
+			err = s.wrapQueryError(tempErr)
+		}
+	}()
+
+	const queryTransaction = `UPDATE transactions SET status = 'CONFIRMED' WHERE id = $1`
+	_, err = tx.ExecContext(ctx, queryTransaction, transaction.Id)
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+
+	const queryReceiverUpdate = `UPDATE accounts SET "balanceCents" = "balanceCents" + @amountCents WHERE id = @receiverId`
+
+	_, err = tx.ExecContext(ctx, queryReceiverUpdate, pgx.NamedArgs{
+		"amountCents": transaction.AmountCents,
+		"receiverId":  transaction.ReceiverId,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	if err = tx.Commit(); err != nil {
 		return s.wrapQueryError(err)
 	}
 	return nil
