@@ -14,4 +14,5 @@ const (
 	BlockedAccount
 	NotEnoughMoney
 	WrongPassword
+	AccessDenied
 )

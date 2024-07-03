@@ -213,6 +213,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /v1/atm/user/withdrawal:
+    post:
+      summary: Снятие денег со счёта
+      tags:
+        - ATM User operations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+                amountCents:
+                  type: integer
+                accountId:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 
 components:

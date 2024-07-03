@@ -7,6 +7,7 @@ type (
 		Id           int64
 		BalanceCents int64
 		Status       string
+		UserId       int64
 	}
 
 	AccountTransactionsData struct {

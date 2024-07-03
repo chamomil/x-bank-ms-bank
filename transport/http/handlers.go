@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"x-bank-ms-bank/auth"
 )
 
@@ -62,26 +63,36 @@ func (t *Transport) handlerOpenAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *Transport) handlerBlockAccount(w http.ResponseWriter, r *http.Request) {
-	var accountData AccountData
-	if err := json.NewDecoder(r.Body).Decode(&accountData); err != nil {
+	accountId, err := strconv.ParseInt(r.PathValue("accountId"), 10, 64)
+	if err != nil {
 		t.errorHandler.setBadRequestError(w, err)
+	}
+	claims, ok := r.Context().Value(t.claimsCtxKey).(*auth.Claims)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют claims в контексте"))
 		return
 	}
+	userId := claims.Sub
 
-	if err := t.service.BlockAccount(r.Context(), accountData.AccountId); err != nil {
+	if err := t.service.BlockAccount(r.Context(), accountId, userId); err != nil {
 		t.errorHandler.setError(w, err)
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request) {
-	var accountData AccountData
-	if err := json.NewDecoder(r.Body).Decode(&accountData); err != nil {
+	accountId, err := strconv.ParseInt(r.PathValue("accountId"), 10, 64)
+	if err != nil {
 		t.errorHandler.setBadRequestError(w, err)
+	}
+	claims, ok := r.Context().Value(t.claimsCtxKey).(*auth.Claims)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют claims в контексте"))
 		return
 	}
+	userId := claims.Sub
 
-	data, err := t.service.AccountHistory(r.Context(), accountData.AccountId)
+	data, err := t.service.AccountHistory(r.Context(), accountId, userId)
 	if err != nil {
 		t.errorHandler.setError(w, err)
 		return
@@ -118,8 +129,17 @@ func (t *Transport) handlerAccountTransaction(w http.ResponseWriter, r *http.Req
 		t.errorHandler.setBadRequestError(w, err)
 		return
 	}
+	if !t.validate(w, &transactionData) {
+		return
+	}
+	claims, ok := r.Context().Value(t.claimsCtxKey).(*auth.Claims)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют claims в контексте"))
+		return
+	}
+	userId := claims.Sub
 
-	if err := t.service.Transaction(r.Context(), transactionData.SenderId, transactionData.ReceiverId, transactionData.AmountCents, transactionData.Description); err != nil {
+	if err := t.service.Transaction(r.Context(), transactionData.SenderId, transactionData.ReceiverId, transactionData.AmountCents, userId, transactionData.Description); err != nil {
 		t.errorHandler.setError(w, err)
 		return
 	}
@@ -133,8 +153,20 @@ func (t *Transport) handlerATMSupplement(w http.ResponseWriter, r *http.Request)
 		t.errorHandler.setBadRequestError(w, err)
 		return
 	}
+	if !t.validate(w, &atmSupplementData) {
+		return
+	}
 
-	if err := t.service.ATMSupplement(r.Context(), atmSupplementData.Login, atmSupplementData.Password, atmSupplementData.AmountCents); err != nil {
+	basic, ok := r.Context().Value(t.basicCtxKey).(ATMAuthData)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют basic auth в контексте"))
+		return
+	}
+	if !t.validate(w, &basic) {
+		return
+	}
+
+	if err := t.service.ATMSupplement(r.Context(), basic.Login, basic.Password, atmSupplementData.AmountCents); err != nil {
 		t.errorHandler.setError(w, err)
 	}
 
@@ -147,8 +179,20 @@ func (t *Transport) handlerATMWithdrawal(w http.ResponseWriter, r *http.Request)
 		t.errorHandler.setBadRequestError(w, err)
 		return
 	}
+	if !t.validate(w, &atmWithdrawalData) {
+		return
+	}
 
-	if err := t.service.ATMWithdrawal(r.Context(), atmWithdrawalData.Login, atmWithdrawalData.Password, atmWithdrawalData.AmountCents); err != nil {
+	basic, ok := r.Context().Value(t.basicCtxKey).(ATMAuthData)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют basic auth в контексте"))
+		return
+	}
+	if !t.validate(w, &basic) {
+		return
+	}
+
+	if err := t.service.ATMWithdrawal(r.Context(), basic.Login, basic.Password, atmWithdrawalData.AmountCents); err != nil {
 		t.errorHandler.setError(w, err)
 	}
 
@@ -161,8 +205,46 @@ func (t *Transport) handlerATMUserSupplement(w http.ResponseWriter, r *http.Requ
 		t.errorHandler.setBadRequestError(w, err)
 		return
 	}
+	if !t.validate(w, &atmUserSupplementData) {
+		return
+	}
 
-	if err := t.service.ATMUserSupplement(r.Context(), atmUserSupplementData.Login, atmUserSupplementData.Password, atmUserSupplementData.AmountCents, atmUserSupplementData.AccountId); err != nil {
+	basic, ok := r.Context().Value(t.basicCtxKey).(ATMAuthData)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют basic auth в контексте"))
+		return
+	}
+	if !t.validate(w, &basic) {
+		return
+	}
+
+	if err := t.service.ATMUserSupplement(r.Context(), basic.Login, basic.Password, atmUserSupplementData.AmountCents, atmUserSupplementData.AccountId, 0); err != nil {
+		t.errorHandler.setError(w, err)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (t *Transport) handlerATMUserWithdrawal(w http.ResponseWriter, r *http.Request) {
+	var atmUserWithdrawalData ATMUserOperationData
+	if err := json.NewDecoder(r.Body).Decode(&atmUserWithdrawalData); err != nil {
+		t.errorHandler.setBadRequestError(w, err)
+		return
+	}
+
+	if !t.validate(w, &atmUserWithdrawalData) {
+		return
+	}
+	basic, ok := r.Context().Value(t.basicCtxKey).(ATMAuthData)
+	if !ok {
+		t.errorHandler.setError(w, errors.New("отсутствуют basic auth в контексте"))
+		return
+	}
+	if !t.validate(w, &basic) {
+		return
+	}
+
+	if err := t.service.ATMUserSupplement(r.Context(), basic.Login, basic.Password, atmUserWithdrawalData.AmountCents, atmUserWithdrawalData.AccountId, 0); err != nil {
 		t.errorHandler.setError(w, err)
 	}
 

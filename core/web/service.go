@@ -32,16 +32,31 @@ func (s *Service) OpenAccount(ctx context.Context, userId int64) error {
 	return s.accountStorage.OpenUserAccount(ctx, userId)
 }
 
-func (s *Service) BlockAccount(ctx context.Context, accountId int64) error {
+func (s *Service) BlockAccount(ctx context.Context, accountId, userId int64) error {
+	accountInfo, err := s.accountStorage.GetAccountDataById(ctx, accountId)
+	if err != nil {
+		return err
+	}
+	if accountInfo.UserId != userId {
+		return cerrors.NewErrorWithUserMessage(ercodes.AccessDenied, nil, "Ошибка доступа")
+	}
 	return s.accountStorage.BlockUserAccount(ctx, accountId)
 }
 
-func (s *Service) AccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error) {
+func (s *Service) AccountHistory(ctx context.Context, accountId, userId int64) ([]AccountTransactionsData, error) {
+	accountInfo, err := s.accountStorage.GetAccountDataById(ctx, accountId)
+	if err != nil {
+		return []AccountTransactionsData{}, err
+	}
+	if accountInfo.UserId != userId {
+		return []AccountTransactionsData{}, cerrors.NewErrorWithUserMessage(ercodes.AccessDenied, nil, "Ошибка доступа")
+	}
+
 	return s.accountStorage.GetAccountHistory(ctx, accountId)
 }
 
-func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountCents int64, description string) error {
-	senderAccountData, err := s.accountStorage.GetSenderAccountData(ctx, senderId)
+func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountCents, userId int64, description string) error {
+	senderAccountData, err := s.accountStorage.GetAccountDataById(ctx, senderId)
 	if err != nil {
 		return err
 	}
@@ -52,8 +67,11 @@ func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountC
 	if senderAccountData.BalanceCents < amountCents {
 		return cerrors.NewErrorWithUserMessage(ercodes.NotEnoughMoney, nil, "Недостаточно средств")
 	}
+	if userId != 0 && senderAccountData.UserId != userId {
+		return cerrors.NewErrorWithUserMessage(ercodes.AccessDenied, nil, "Ошибка доступа")
+	}
 
-	receiverAccountData, err := s.accountStorage.GetSenderAccountData(ctx, receiverId)
+	receiverAccountData, err := s.accountStorage.GetAccountDataById(ctx, receiverId)
 	if err != nil {
 		return err
 	}
@@ -66,58 +84,46 @@ func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountC
 }
 
 func (s *Service) ATMSupplement(ctx context.Context, login, password string, amountCents int64) error {
-	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
-	if err != nil {
-		return err
-	}
-
-	if err = s.passwordHasher.CompareHashAndPassword(ctx, password, atmData.PasswordHash); err != nil {
-		return err
-	}
-
-	if err = s.atmStorage.UpdateAtmCash(ctx, amountCents, atmData.Id); err != nil {
-		return err
-	}
-	if err = s.accountStorage.UpdateAtmAccount(ctx, amountCents, atmData.AccountId); err != nil {
-		return err
-	}
-	return nil
+	_, err := s.changeATMState(ctx, login, password, amountCents)
+	return err
 }
 
 func (s *Service) ATMWithdrawal(ctx context.Context, login, password string, amountCents int64) error {
-	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
-	if err != nil {
-		return err
-	}
-
-	if err = s.passwordHasher.CompareHashAndPassword(ctx, password, atmData.PasswordHash); err != nil {
-		return err
-	}
-
-	if err = s.atmStorage.UpdateAtmCash(ctx, -amountCents, atmData.Id); err != nil {
-		return err
-	}
-	if err = s.accountStorage.UpdateAtmAccount(ctx, -amountCents, atmData.AccountId); err != nil {
-		return err
-	}
-	return nil
+	_, err := s.changeATMState(ctx, login, password, -amountCents)
+	return err
 }
 
-func (s *Service) ATMUserSupplement(ctx context.Context, login, password string, amountCents, accountId int64) error {
-	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
+func (s *Service) ATMUserSupplement(ctx context.Context, login, password string, amountCents, accountId, userId int64) error {
+	atmAccountId, err := s.changeATMState(ctx, login, password, amountCents)
 	if err != nil {
 		return err
 	}
+	return s.Transaction(ctx, atmAccountId, accountId, amountCents, userId, "Пополнение счёта")
+}
+
+func (s *Service) ATMUserWithdrawal(ctx context.Context, login, password string, amountCents, accountId, userId int64) error {
+	atmAccountId, err := s.changeATMState(ctx, login, password, -amountCents)
+	if err != nil {
+		return err
+	}
+	return s.Transaction(ctx, atmAccountId, accountId, -amountCents, userId, "Снятие денег со счёта")
+}
+
+func (s *Service) changeATMState(ctx context.Context, login, password string, amountCents int64) (int64, error) {
+	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
+	if err != nil {
+		return 0, err
+	}
 
 	if err = s.passwordHasher.CompareHashAndPassword(ctx, password, atmData.PasswordHash); err != nil {
-		return err
+		return 0, err
 	}
 
 	if err = s.atmStorage.UpdateAtmCash(ctx, amountCents, atmData.Id); err != nil {
-		return err
+		return 0, err
 	}
 	if err = s.accountStorage.UpdateAtmAccount(ctx, amountCents, atmData.AccountId); err != nil {
-		return err
+		return 0, err
 	}
-	return s.Transaction(ctx, atmData.AccountId, accountId, amountCents, "Пополнение счёта")
+	return atmData.AccountId, nil
 }

@@ -18,6 +18,7 @@ type (
 		srv *http.Server
 
 		claimsCtxKey string
+		basicCtxKey  string
 	}
 )
 
@@ -32,6 +33,7 @@ func NewTransport(service web.Service, authorizer auth.Authorizer) Transport {
 			},
 		},
 		claimsCtxKey: "CLAIMS",
+		basicCtxKey:  "BASIC",
 	}
 }
 

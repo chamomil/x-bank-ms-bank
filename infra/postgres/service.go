@@ -131,15 +131,16 @@ func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web
 	return accountTransactionsData, nil
 }
 
-func (s *Service) GetSenderAccountData(ctx context.Context, senderId int64) (web.UserAccountData, error) {
-	const accountQuery = `SELECT "balanceCents", "status" FROM accounts WHERE "id" = $1`
+func (s *Service) GetAccountDataById(ctx context.Context, senderId int64) (web.UserAccountData, error) {
+	const accountQuery = `SELECT accounts."balanceCents", accounts."status", COALESCE("accountOwners"."userId", 0) FROM accounts 
+    LEFT JOIN "accountOwners" ON accounts."ownerId" = "accountOwners".id WHERE accounts."id" = $1`
 	row := s.db.QueryRowContext(ctx, accountQuery, senderId)
 	if err := row.Err(); err != nil {
 		return web.UserAccountData{}, s.wrapQueryError(err)
 	}
 
 	var userAccountData web.UserAccountData
-	if err := row.Scan(&userAccountData.BalanceCents, &userAccountData.Status); err != nil {
+	if err := row.Scan(&userAccountData.BalanceCents, &userAccountData.Status, &userAccountData.UserId); err != nil {
 		return web.UserAccountData{}, s.wrapScanError(err)
 	}
 	return userAccountData, nil

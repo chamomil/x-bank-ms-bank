@@ -11,10 +11,6 @@ type (
 		Items []UserAccountsResponseItem `json:"items"`
 	}
 
-	AccountData struct {
-		AccountId int64 `json:"accountId"`
-	}
-
 	AccountsHistoryResponseItem struct {
 		SenderId    int64  `json:"senderId"`
 		ReceiverId  int64  `json:"receiverId"`
@@ -36,15 +32,16 @@ type (
 	}
 
 	ATMOperationData struct {
-		Login       string `json:"login"`
-		Password    string `json:"password"`
-		AmountCents int64  `json:"amountCents"`
+		AmountCents int64 `json:"amountCents"`
 	}
 
 	ATMUserOperationData struct {
-		Login       string `json:"login"`
-		Password    string `json:"password"`
-		AmountCents int64  `json:"amountCents"`
-		AccountId   int64  `json:"accountId"`
+		AmountCents int64 `json:"amountCents"`
+		AccountId   int64 `json:"accountId"`
+	}
+
+	ATMAuthData struct {
+		Login    string
+		Password string
 	}
 )

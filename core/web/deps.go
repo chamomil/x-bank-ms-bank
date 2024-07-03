@@ -9,7 +9,7 @@ type (
 		BlockUserAccount(ctx context.Context, accountId int64) error
 		GetAccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error)
 		UpdateAtmAccount(ctx context.Context, amountCents, accountId int64) error
-		GetSenderAccountData(ctx context.Context, senderId int64) (UserAccountData, error)
+		GetAccountDataById(ctx context.Context, senderId int64) (UserAccountData, error)
 	}
 
 	TransactionStorage interface {
