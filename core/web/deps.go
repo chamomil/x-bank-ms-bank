@@ -7,7 +7,7 @@ type (
 		GetUserAccounts(ctx context.Context, userId int64) ([]UserAccountData, error)
 		OpenUserAccount(ctx context.Context, userId int64) error
 		BlockUserAccount(ctx context.Context, accountId int64) error
-		GetAccountHistory(ctx context.Context, accountId int64) ([]AccountTransactionsData, error)
+		GetAccountHistory(ctx context.Context, accountId, limit, offset int64) ([]AccountTransactionsData, int64, error)
 		UpdateAtmAccount(ctx context.Context, amountCents, accountId int64) error
 		GetAccountDataById(ctx context.Context, senderId int64) (UserAccountData, error)
 	}

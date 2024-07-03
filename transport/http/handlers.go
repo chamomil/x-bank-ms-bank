@@ -8,6 +8,14 @@ import (
 	"x-bank-ms-bank/auth"
 )
 
+const (
+	maxLimit      = 100
+	minLimit      = 0
+	defaultLimit  = 20
+	minOffset     = 0
+	defaultOffset = 0
+)
+
 func (t *Transport) handlerNotFound(w http.ResponseWriter, _ *http.Request) {
 	t.errorHandler.setNotFoundError(w)
 }
@@ -85,6 +93,15 @@ func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		t.errorHandler.setBadRequestError(w, err)
 	}
+	limit, err := strconv.ParseInt(r.URL.Query().Get("limit"), 10, 64)
+	if err != nil || limit < minLimit || limit > maxLimit {
+		limit = defaultLimit
+	}
+	offset, err := strconv.ParseInt(r.URL.Query().Get("offset"), 10, 64)
+	if err != nil || offset < 0 {
+		offset = defaultOffset
+	}
+
 	claims, ok := r.Context().Value(t.claimsCtxKey).(*auth.Claims)
 	if !ok {
 		t.errorHandler.setError(w, errors.New("отсутствуют claims в контексте"))
@@ -92,7 +109,7 @@ func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request
 	}
 	userId := claims.Sub
 
-	data, err := t.service.GetAccountHistory(r.Context(), accountId, userId)
+	data, total, err := t.service.GetAccountHistory(r.Context(), accountId, userId, limit, offset)
 	if err != nil {
 		t.errorHandler.setError(w, err)
 		return
@@ -114,6 +131,7 @@ func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request
 	} else {
 		response.Items = nil
 	}
+	response.Total = total
 
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(response)

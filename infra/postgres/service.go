@@ -35,8 +35,6 @@ func NewService(login, password, host string, port int, database string, maxCons
 	}, err
 }
 
-const ()
-
 func (s *Service) GetUserAccounts(ctx context.Context, userId int64) ([]web.UserAccountData, error) {
 	const query = `SELECT accounts."id", "balanceCents", "status" FROM accounts LEFT JOIN "accountOwners" ON "ownerId" = "accountOwners".id WHERE "userId" = $1`
 
@@ -111,24 +109,44 @@ func (s *Service) BlockUserAccount(ctx context.Context, accountId int64) error {
 	return nil
 }
 
-func (s *Service) GetAccountHistory(ctx context.Context, accountId int64) ([]web.AccountTransactionsData, error) {
-	const query = `SELECT "senderId", "receiverId", "status", "createdAt", "amountCents", "description" FROM transactions WHERE "senderId" = $1 OR "receiverId" = $1 ORDER BY "createdAt" DESC`
+func (s *Service) GetAccountHistory(ctx context.Context, accountId, limit, offset int64) ([]web.AccountTransactionsData, int64, error) {
+	const query = `SELECT "senderId", "receiverId", "status", "createdAt", "amountCents", "description" FROM transactions 
+					WHERE "senderId" = @accountId OR "receiverId" = @accountId ORDER BY "createdAt" DESC LIMIT @limit OFFSET @offset`
 
-	rows, err := s.db.QueryContext(ctx, query, accountId)
+	rows, err := s.db.QueryContext(ctx, query, pgx.NamedArgs{
+		"accountId": accountId,
+		"limit":     limit,
+		"offset":    offset,
+	})
 	if err != nil {
-		return nil, s.wrapQueryError(err)
+		return nil, 0, s.wrapQueryError(err)
 	}
 
 	var accountTransactionsData []web.AccountTransactionsData
 	for rows.Next() {
 		var data web.AccountTransactionsData
 		if err = rows.Scan(&data.SenderId, &data.ReceiverId, &data.Status, &data.CreatedAt, &data.AmountCents, &data.Description); err != nil {
-			return nil, s.wrapScanError(err)
+			return nil, 0, s.wrapScanError(err)
 		}
 		accountTransactionsData = append(accountTransactionsData, data)
 	}
 
-	return accountTransactionsData, nil
+	const queryTotal = `SELECT COUNT("id") FROM transactions WHERE "senderId" = @accountId OR "receiverId" = @accountId`
+	row := s.db.QueryRowContext(ctx, queryTotal, pgx.NamedArgs{
+		"accountId": accountId,
+		"limit":     limit,
+		"offset":    offset,
+	})
+	if err = row.Err(); err != nil {
+		return nil, 0, s.wrapQueryError(err)
+	}
+	var total int64
+	err = row.Scan(&total)
+	if err != nil {
+		return nil, 0, s.wrapQueryError(err)
+	}
+
+	return accountTransactionsData, total, nil
 }
 
 func (s *Service) GetAccountDataById(ctx context.Context, senderId int64) (web.UserAccountData, error) {

@@ -26,7 +26,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/accounts/open:
+  /v1/accounts:
     post:
       summary: Открытие счёта
       tags:
@@ -42,22 +42,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/accounts/block:
+  /v1/accounts/{accountId}/block:
     post:
       summary: Блокировка счёта
       tags:
         - Account operations
       security:
         - bearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                accountId:
-                  type: integer
-                  description: Номер счёта
+      parameters:
+        - in: path
+          name: accountId
+          schema:
+            type: integer
+          required: true
       responses:
         '200':
           description: OK
@@ -67,22 +64,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /v1/accounts/history:
+  /v1/accounts/{accountId}/history:
     get:
       summary: История транзакций счёта
       tags:
         - Account operations
       security:
         - bearerAuth: [ ]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                accountId:
-                  type: integer
-                  description: Номер счёта
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: integer
+          required: true
       responses:
         '200':
           description: OK
@@ -93,6 +87,8 @@ paths:
                 properties:
                   items:
                     $ref: '#/components/schemas/AccountHistoryResponse'
+                  total:
+                    type: integer
         '400':
           description: Error
           content:
@@ -138,16 +134,14 @@ paths:
       summary: Внесение наличных в банкомат инкассатором
       tags:
         - ATM collector operations
+      security:
+        - basicAuth: [ ]
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                login:
-                  type: string
-                password:
-                  type: string
                 amountCents:
                   type: integer
       responses:
@@ -164,16 +158,14 @@ paths:
       summary: Изъятие инкассатором наличных из банкомата
       tags:
         - ATM collector operations
+      security:
+        - basicAuth: [ ]
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                login:
-                  type: string
-                password:
-                  type: string
                 amountCents:
                   type: integer
       responses:
@@ -190,16 +182,14 @@ paths:
       summary: Пополнение счёта
       tags:
         - ATM User operations
+      security:
+        - basicAuth: [ ]
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                login:
-                  type: string
-                password:
-                  type: string
                 amountCents:
                   type: integer
                 accountId:
@@ -218,16 +208,14 @@ paths:
       summary: Снятие денег со счёта
       tags:
         - ATM User operations
+      security:
+        - basicAuth: [ ]
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                login:
-                  type: string
-                password:
-                  type: string
                 amountCents:
                   type: integer
                 accountId:
@@ -250,6 +238,9 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    basicAuth:
+      type: http
+      scheme: basic
 
   schemas:
     Error:

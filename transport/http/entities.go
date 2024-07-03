@@ -22,6 +22,7 @@ type (
 
 	AccountsHistoryResponse struct {
 		Items []AccountsHistoryResponseItem `json:"items"`
+		Total int64                         `json:"total"`
 	}
 
 	TransactionData struct {

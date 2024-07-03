@@ -43,16 +43,16 @@ func (s *Service) BlockAccount(ctx context.Context, accountId, userId int64) err
 	return s.accountStorage.BlockUserAccount(ctx, accountId)
 }
 
-func (s *Service) GetAccountHistory(ctx context.Context, accountId, userId int64) ([]AccountTransactionsData, error) {
+func (s *Service) GetAccountHistory(ctx context.Context, accountId, userId, limit, offset int64) ([]AccountTransactionsData, int64, error) {
 	accountInfo, err := s.accountStorage.GetAccountDataById(ctx, accountId)
 	if err != nil {
-		return []AccountTransactionsData{}, err
+		return []AccountTransactionsData{}, 0, err
 	}
 	if accountInfo.UserId != userId {
-		return []AccountTransactionsData{}, cerrors.NewErrorWithUserMessage(ercodes.AccessDenied, nil, "Ошибка доступа")
+		return []AccountTransactionsData{}, 0, cerrors.NewErrorWithUserMessage(ercodes.AccessDenied, nil, "Ошибка доступа")
 	}
 
-	return s.accountStorage.GetAccountHistory(ctx, accountId)
+	return s.accountStorage.GetAccountHistory(ctx, accountId, limit, offset)
 }
 
 func (s *Service) MakeTransaction(ctx context.Context, senderId, receiverId, amountCents, userId int64, description string) error {
