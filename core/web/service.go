@@ -43,7 +43,7 @@ func (s *Service) BlockAccount(ctx context.Context, accountId, userId int64) err
 	return s.accountStorage.BlockUserAccount(ctx, accountId)
 }
 
-func (s *Service) AccountHistory(ctx context.Context, accountId, userId int64) ([]AccountTransactionsData, error) {
+func (s *Service) GetAccountHistory(ctx context.Context, accountId, userId int64) ([]AccountTransactionsData, error) {
 	accountInfo, err := s.accountStorage.GetAccountDataById(ctx, accountId)
 	if err != nil {
 		return []AccountTransactionsData{}, err
@@ -55,7 +55,7 @@ func (s *Service) AccountHistory(ctx context.Context, accountId, userId int64) (
 	return s.accountStorage.GetAccountHistory(ctx, accountId)
 }
 
-func (s *Service) Transaction(ctx context.Context, senderId, receiverId, amountCents, userId int64, description string) error {
+func (s *Service) MakeTransaction(ctx context.Context, senderId, receiverId, amountCents, userId int64, description string) error {
 	senderAccountData, err := s.accountStorage.GetAccountDataById(ctx, senderId)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (s *Service) ATMUserSupplement(ctx context.Context, login, password string,
 	if err != nil {
 		return err
 	}
-	return s.Transaction(ctx, atmAccountId, accountId, amountCents, userId, "Пополнение счёта")
+	return s.MakeTransaction(ctx, atmAccountId, accountId, amountCents, userId, "Пополнение счёта")
 }
 
 func (s *Service) ATMUserWithdrawal(ctx context.Context, login, password string, amountCents, accountId, userId int64) error {
@@ -106,11 +106,11 @@ func (s *Service) ATMUserWithdrawal(ctx context.Context, login, password string,
 	if err != nil {
 		return err
 	}
-	return s.Transaction(ctx, atmAccountId, accountId, -amountCents, userId, "Снятие денег со счёта")
+	return s.MakeTransaction(ctx, atmAccountId, accountId, -amountCents, userId, "Снятие денег со счёта")
 }
 
 func (s *Service) changeATMState(ctx context.Context, login, password string, amountCents int64) (int64, error) {
-	atmData, err := s.atmStorage.GetPasswordByLogin(ctx, login)
+	atmData, err := s.atmStorage.GetAtmDataByLogin(ctx, login)
 	if err != nil {
 		return 0, err
 	}

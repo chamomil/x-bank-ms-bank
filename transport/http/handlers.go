@@ -92,7 +92,7 @@ func (t *Transport) handlerAccountHistory(w http.ResponseWriter, r *http.Request
 	}
 	userId := claims.Sub
 
-	data, err := t.service.AccountHistory(r.Context(), accountId, userId)
+	data, err := t.service.GetAccountHistory(r.Context(), accountId, userId)
 	if err != nil {
 		t.errorHandler.setError(w, err)
 		return
@@ -139,7 +139,7 @@ func (t *Transport) handlerAccountTransaction(w http.ResponseWriter, r *http.Req
 	}
 	userId := claims.Sub
 
-	if err := t.service.Transaction(r.Context(), transactionData.SenderId, transactionData.ReceiverId, transactionData.AmountCents, userId, transactionData.Description); err != nil {
+	if err := t.service.MakeTransaction(r.Context(), transactionData.SenderId, transactionData.ReceiverId, transactionData.AmountCents, userId, transactionData.Description); err != nil {
 		t.errorHandler.setError(w, err)
 		return
 	}

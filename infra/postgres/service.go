@@ -193,7 +193,7 @@ func (s *Service) CreateTransaction(ctx context.Context, senderId, receiverId, a
 	return err
 }
 
-func (s *Service) GetPasswordByLogin(ctx context.Context, login string) (web.AtmData, error) {
+func (s *Service) GetAtmDataByLogin(ctx context.Context, login string) (web.AtmData, error) {
 	const query = `SELECT atms.id, atms.password, atms."cashCents", accounts.id as "hasPersonalData"
 				   FROM atms
 				   INNER JOIN "accountOwners" ON atms.id = "accountOwners"."atmId" 

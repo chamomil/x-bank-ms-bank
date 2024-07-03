@@ -17,7 +17,7 @@ type (
 	}
 
 	AtmStorage interface {
-		GetPasswordByLogin(ctx context.Context, login string) (AtmData, error)
+		GetAtmDataByLogin(ctx context.Context, login string) (AtmData, error)
 		UpdateAtmCash(ctx context.Context, amountCents, atmId int64) error
 	}
 
