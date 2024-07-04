@@ -73,7 +73,7 @@ paths:
         - bearerAuth: [ ]
       parameters:
         - in: path
-          name: userId
+          name: accountId
           schema:
             type: integer
           required: true
