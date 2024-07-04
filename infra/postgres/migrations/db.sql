@@ -37,6 +37,15 @@ CREATE TABLE "transactions"
     "description" TEXT
 );
 
+CREATE TABLE "cashOperations"
+(
+    "id"          BIGSERIAL NOT NULL PRIMARY KEY,
+    "atmAccountId"       BIGINT NOT NULL REFERENCES "atms" ("id"),
+    "userAccountId"      BIGINT,
+    "amountCents" BIGINT NOT NULL CHECK ( "amountCents" != 0 ),
+    "createdAt"   TIMESTAMP          NOT NULL DEFAULT current_timestamp
+);
+
 CREATE INDEX "transactions_senderId_index" ON "transactions" ("senderId");
 CREATE INDEX "transactions_receiverId_index" ON "transactions" ("receiverId");
 CREATE INDEX "accounts_ownerId_index" ON "accounts" ("ownerId");
@@ -71,3 +80,4 @@ SELECT *
 FROM "accountOwners";
 SELECT *
 FROM atms;
+SELECT * FROM "cashOperations";

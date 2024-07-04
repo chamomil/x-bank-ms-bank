@@ -260,6 +260,25 @@ func (s *Service) UpdateAtmAccount(ctx context.Context, amountCents, accountId i
 	return nil
 }
 
+func (s *Service) LogCashOperation(ctx context.Context, atmId, amountCents, userAccountId int64) error {
+	var query string
+	if userAccountId == 0 {
+		query = `INSERT INTO "cashOperations" ("atmAccountId", "amountCents") VALUES (@atmId, @amountCents)`
+	} else {
+		query = `INSERT INTO "cashOperations" ("atmAccountId", "userAccountId", "amountCents") VALUES (@atmId, @userAccountId, @amountCents)`
+	}
+
+	_, err := s.db.ExecContext(ctx, query, pgx.NamedArgs{
+		"atmId":         atmId,
+		"amountCents":   amountCents,
+		"userAccountId": userAccountId,
+	})
+	if err != nil {
+		return s.wrapQueryError(err)
+	}
+	return nil
+}
+
 func (s *Service) ConfirmTransaction(ctx context.Context, confirmationTime time.Duration) error {
 	const queryTransactions = `SELECT "id", "senderId", "receiverId", "amountCents" FROM transactions WHERE current_timestamp - "createdAt" >= @confirmationTime AND status = 'BLOCKED'`
 	rows, err := s.db.QueryContext(ctx, queryTransactions,

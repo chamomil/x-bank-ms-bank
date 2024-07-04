@@ -84,17 +84,17 @@ func (s *Service) MakeTransaction(ctx context.Context, senderId, receiverId, amo
 }
 
 func (s *Service) ATMSupplement(ctx context.Context, login, password string, amountCents int64) error {
-	_, err := s.changeATMState(ctx, login, password, amountCents)
+	_, err := s.changeATMState(ctx, login, password, amountCents, 0)
 	return err
 }
 
 func (s *Service) ATMWithdrawal(ctx context.Context, login, password string, amountCents int64) error {
-	_, err := s.changeATMState(ctx, login, password, -amountCents)
+	_, err := s.changeATMState(ctx, login, password, -amountCents, 0)
 	return err
 }
 
 func (s *Service) ATMUserSupplement(ctx context.Context, login, password string, amountCents, accountId, userId int64) error {
-	atmAccountId, err := s.changeATMState(ctx, login, password, amountCents)
+	atmAccountId, err := s.changeATMState(ctx, login, password, amountCents, accountId)
 	if err != nil {
 		return err
 	}
@@ -102,14 +102,14 @@ func (s *Service) ATMUserSupplement(ctx context.Context, login, password string,
 }
 
 func (s *Service) ATMUserWithdrawal(ctx context.Context, login, password string, amountCents, accountId, userId int64) error {
-	atmAccountId, err := s.changeATMState(ctx, login, password, -amountCents)
+	atmAccountId, err := s.changeATMState(ctx, login, password, -amountCents, accountId)
 	if err != nil {
 		return err
 	}
 	return s.MakeTransaction(ctx, atmAccountId, accountId, -amountCents, userId, "Снятие денег со счёта")
 }
 
-func (s *Service) changeATMState(ctx context.Context, login, password string, amountCents int64) (int64, error) {
+func (s *Service) changeATMState(ctx context.Context, login, password string, amountCents, userAccountId int64) (int64, error) {
 	atmData, err := s.atmStorage.GetAtmDataByLogin(ctx, login)
 	if err != nil {
 		return 0, err
@@ -123,6 +123,9 @@ func (s *Service) changeATMState(ctx context.Context, login, password string, am
 		return 0, err
 	}
 	if err = s.accountStorage.UpdateAtmAccount(ctx, amountCents, atmData.AccountId); err != nil {
+		return 0, err
+	}
+	if err = s.atmStorage.LogCashOperation(ctx, atmData.Id, amountCents, userAccountId); err != nil {
 		return 0, err
 	}
 	return atmData.AccountId, nil

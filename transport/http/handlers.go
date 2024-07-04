@@ -262,7 +262,7 @@ func (t *Transport) handlerATMUserWithdrawal(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := t.service.ATMUserSupplement(r.Context(), basic.Login, basic.Password, atmUserWithdrawalData.AmountCents, atmUserWithdrawalData.AccountId, 0); err != nil {
+	if err := t.service.ATMUserWithdrawal(r.Context(), basic.Login, basic.Password, atmUserWithdrawalData.AmountCents, atmUserWithdrawalData.AccountId, 0); err != nil {
 		t.errorHandler.setError(w, err)
 	}
 

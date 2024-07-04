@@ -28,13 +28,22 @@ CREATE TABLE "accounts"
 
 CREATE TABLE "transactions"
 (
-    "id"          BIGSERIAL             NOT NULL PRIMARY KEY,
+    "id"          BIGSERIAL          NOT NULL PRIMARY KEY,
     "senderId"    BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "receiverId"  BIGINT             NOT NULL REFERENCES "accounts" ("id"),
     "status"      status_transaction NOT NULL DEFAULT 'BLOCKED',
     "createdAt"   TIMESTAMP          NOT NULL DEFAULT current_timestamp,
     "amountCents" BIGINT             NOT NULL,
     "description" TEXT
+);
+
+CREATE TABLE "cashOperations"
+(
+    "id"          BIGSERIAL NOT NULL PRIMARY KEY,
+    "atmAccountId"       BIGINT NOT NULL REFERENCES "atms" ("id"),
+    "userAccountId"      BIGINT,
+    "amountCents" BIGINT NOT NULL CHECK ( "amountCents" != 0 ),
+    "createdAt"   TIMESTAMP          NOT NULL DEFAULT current_timestamp
 );
 
 CREATE INDEX "transactions_senderId_index" ON "transactions" ("senderId");

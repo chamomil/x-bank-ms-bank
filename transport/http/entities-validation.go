@@ -26,9 +26,9 @@ func (u *ATMAuthData) validate() (ve validationErrors) {
 		ve.Add("Неверный логин")
 	}
 
-	if len(u.Password) < 6 || len(u.Password) > 16 {
-		ve.Add("Неверный пароль")
-	}
+	//if len(u.Password) < 6 || len(u.Password) > 16 {
+	//	ve.Add("Неверный пароль")
+	//}
 
 	return
 }

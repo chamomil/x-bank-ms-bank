@@ -19,6 +19,7 @@ type (
 	AtmStorage interface {
 		GetAtmDataByLogin(ctx context.Context, login string) (AtmData, error)
 		UpdateAtmCash(ctx context.Context, amountCents, atmId int64) error
+		LogCashOperation(ctx context.Context, atmId, amountCents, userId int64) error
 	}
 
 	PasswordHasher interface {
